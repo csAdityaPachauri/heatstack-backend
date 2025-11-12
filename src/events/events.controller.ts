@@ -7,9 +7,11 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
+  Patch,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
+import { UpdateLyticsIdDto } from './dto/update-lytics-id.dto';
 
 @Controller()
 export class EventsController {
@@ -51,5 +53,21 @@ export class EventsController {
     @Query('origin') origin: string,
   ) {
     return this.eventsService.getFlow(stackId, origin, flowId);
+  }
+
+  @Patch(':stackId/users/:userId/lytics')
+  @UsePipes(new ValidationPipe())
+  updateLyticsId(
+    @Param('stackId') stackId: string,
+    @Param('userId') userId: string,
+    @Query('origin') origin: string,
+    @Body() updateLyticsIdDto: UpdateLyticsIdDto,
+  ) {
+    return this.eventsService.updateLyticsId(
+      stackId,
+      userId,
+      origin,
+      updateLyticsIdDto.lyticsId,
+    );
   }
 }

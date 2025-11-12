@@ -340,4 +340,66 @@ export class EventsService {
       results,
     }
   }
+
+  async updateLyticsId(
+    stackId: string,
+    userId: string,
+    origin: string,
+    lyticsId: string,
+  ): Promise<any> {
+    console.log('updateLyticsId', stackId, userId, origin, lyticsId);
+
+    // Find the stack
+    const stack = await this.stackModel.findOne({ id: stackId });
+    if (!stack) {
+      return {
+        success: false,
+        message: 'Stack not found',
+      };
+    }
+
+    // Find the website
+    const website = stack.websites.find((website) => website.origin === origin);
+    if (!website) {
+      return {
+        success: false,
+        message: 'Website not found',
+      };
+    }
+
+    // Get the collection
+    const allCollections = await this.connection.db.collections();
+    const websiteCollection = allCollections.find(
+      (collection) => collection.collectionName === `${origin}.collection`,
+    );
+    if (!websiteCollection) {
+      return {
+        success: false,
+        message: 'Website collection not found',
+      };
+    }
+
+    // Find the user
+    const user = await websiteCollection.findOne({ id: userId });
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found',
+      };
+    }
+
+    // Update the lyticsId
+    await websiteCollection.updateOne(
+      { id: userId },
+      { $set: { lyticsId } },
+    );
+
+    // Return the updated user
+    const updatedUser = await websiteCollection.findOne({ id: userId });
+    return {
+      success: true,
+      user: updatedUser,
+      message: 'LyticsId updated successfully',
+    };
+  }
 }
