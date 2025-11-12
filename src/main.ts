@@ -1,9 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { INestApplication } from '@nestjs/common';
+
+
+// Cache the NestJS app instance
+let app: INestApplication;
+
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
+  if(app) return app;
+  app = await NestFactory.create(AppModule);
+  
   // Enable CORS
   app.enableCors({
     origin: '*',
@@ -16,4 +23,9 @@ async function bootstrap() {
   console.log(`Application is running on: http://localhost:${port}`);
 }
 
-bootstrap();
+export default async (req: any, res: any) => {
+  const nestApp = await bootstrap();
+  const server = nestApp.getHttpAdapter().getInstance();
+  server(req, res);
+};
+
