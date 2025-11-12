@@ -196,6 +196,44 @@ export class EventsService {
     };
   }
 
+  async eventsByLytics(stackId: string, origin: string, lyticsIds: string[]): Promise<any> {
+    const stack = await this.stackModel.findOne({ id: stackId });
+    if (!stack) {
+      return {
+        success: false,
+        message: 'Stack not found',
+      };
+    }
+    const website = stack.websites.find((website) => website.origin === origin);
+    if (!website) {
+      return {
+        success: false,
+        message: 'Website not found',
+      };
+    }
+    const allCollections = await this.connection.db.collections();
+    const websiteCollection = allCollections.find(
+      (collection) => collection.collectionName === `${origin}.collection`,
+    );
+    if (!websiteCollection) {
+      return {
+        success: false,
+        message: 'Website collection not found',
+      };
+    }
+    
+    // Filter users by lyticsId
+    const userData = await websiteCollection
+      .find({ lyticsId: { $in: lyticsIds } })
+      .project({ points: 1, id: 1, lyticsId: 1 })
+      .toArray();
+    
+    return {
+      success: true,
+      userData,
+    };
+  }
+
   private extractMetrics(interactions: any) {
     return {
       totalClicks: Array.isArray(interactions.click) ? interactions.click.length : 0,

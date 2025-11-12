@@ -12,6 +12,7 @@ import {
 import { EventsService } from './events.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateLyticsIdDto } from './dto/update-lytics-id.dto';
+import { GetLyticsDataDto } from './dto/get-lytics-data.dto';
 
 @Controller()
 export class EventsController {
@@ -33,6 +34,16 @@ export class EventsController {
   @UsePipes(new ValidationPipe())
   events(@Query('origin') origin: string, @Param('stackId') stackId: string) {
     return this.eventsService.events(stackId, origin);
+  }
+
+  @Post(':stackId/events/lytics')
+  @UsePipes(new ValidationPipe())
+  eventsByLytics(
+    @Param('stackId') stackId: string,
+    @Query('origin') origin: string,
+    @Body() getLyticsDataDto: GetLyticsDataDto,
+  ) {
+    return this.eventsService.eventsByLytics(stackId, origin, getLyticsDataDto.lyticsIds);
   }
 
   @Post(':stackId/flows')
