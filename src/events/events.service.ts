@@ -7,11 +7,11 @@ import { Stack, StackDocument } from './schemas/stack.schema';
 import { EmbeddingService } from '../vectordb/embedding.service';
 import { VectordbService } from '../vectordb/vectordb.service';
 import { EventTransformerService } from '../vectordb/transformers/event-transformer.service';
+import { CreateFlowDto } from './dto/create-flow.dto';
 
 @Injectable()
 export class EventsService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Stack.name) private stackModel: Model<StackDocument>,
     @InjectConnection() private connection: Connection,
     private embeddingService: EmbeddingService,
@@ -45,7 +45,8 @@ export class EventsService {
       });
       await stack.save();
     }
-    let website = stack.websites.find((website) => website.origin === origin);
+    const allStacks = await this.stackModel.find({}).exec();
+    let website = stack.websites.find(website => website.origin === origin);
     if (!website) {
       website = {
         origin,
@@ -201,5 +202,142 @@ export class EventsService {
       totalViews: interactions.view || 0,
       totalHover: interactions.hover || 0,
     };
+  }
+
+  async flows(stackId: string, origin: string, createFlowDto: CreateFlowDto): Promise<any> {
+    console.log('flows', stackId, origin, createFlowDto);
+    const stack = await this.stackModel.findOne({ id: stackId });
+    if (!stack) {
+      return {
+        success: false,
+        message: 'Stack not found',
+      }
+    }
+    if(!stack.websites) {
+      stack.websites = [];
+    }
+    const website = stack.websites.find(website => website.origin === origin);
+    if (!website) {
+      return {
+        success: false,
+        message: 'Website not found',
+      }
+    }
+    const allCollections = await this.connection.db.collections();
+    const websiteCollection = allCollections.find(collection => collection.collectionName === `${origin}.collection`);
+    if (!websiteCollection) {
+      return {
+        success: false,
+        message: 'Website collection not found',
+      }
+    }
+    const flow = {
+      id: createFlowDto.id,
+      name: createFlowDto.name,
+      sequence: createFlowDto.sequence,
+    }
+    stack.websites = [...stack.websites.map(website => {
+      if(website.origin !== origin) return website;
+      if(!website.flows) {
+        website = {
+          ...website,
+          flows: {
+            [flow.id]: flow,
+          },
+        };
+      }
+      else {
+        website = {
+          ...website,
+          flows: {
+            ...website.flows,
+            [flow.id]: flow,
+          },
+        };
+      }
+      return website;
+    })];
+    await stack.save();
+    return {
+      success: true,
+      flow,
+    }
+  }
+
+  async getFlow(stackId: string, origin: string, flowId: string): Promise<any> {
+    const stack = await this.stackModel.findOne({ id: stackId });
+    if (!stack) {
+      return {
+        success: false,
+        message: 'Stack not found',
+      }
+    }
+    if(!stack.websites) {
+      stack.websites = [];
+    }
+    const website = stack.websites.find(website => website.origin === origin);
+    if (!website) {
+      return {
+        success: false,
+        message: 'Website not found',
+      }
+    }
+    const allCollections = await this.connection.db.collections();
+    const websiteCollection = allCollections.find(collection => collection.collectionName === `${origin}.collection`);
+    if (!websiteCollection) {
+      return {
+        success: false,
+        message: 'Website collection not found',
+      }
+    }
+    if(!website.flows) {
+      return {
+        success: false,
+        message: 'Flow not found',
+      }
+    }
+    const flow = website.flows[flowId];
+    if(!flow) {
+      return {
+        success: false,
+        message: 'Flow not found',
+      }
+    }
+    const users = await websiteCollection.find({}).toArray();
+    let totalInteractedUsers = 0;
+    const results = [];
+    for(let i = 1; i < flow.sequence.length; i++) {
+      const node = flow.sequence[i];
+      const previousNode = flow.sequence[i - 1];
+      const usersInteractedWithPreviousNode = users.filter(user => user.points[previousNode]?.click.length > 0);
+      if(i === 1) {
+        totalInteractedUsers = usersInteractedWithPreviousNode.length;
+      }
+      const usersInteractedWithNode = users.filter(user => user.points[node]?.click.length > 0);
+      const usersInteractedWithNodesUids = usersInteractedWithNode.map(user => user.id);
+
+      const commonUsers = usersInteractedWithPreviousNode.filter(user => usersInteractedWithNodesUids.includes(user.id));
+      let validUsers = 0;
+      commonUsers.forEach(user => {
+        const previousNodeInteractions = user.points[previousNode].click.sort();
+        const currentNodeInteractions = user.points[node].click.sort();
+
+        let isValidTransition = false;
+        currentNodeInteractions.forEach(currentInteraction => {
+          if(isValidTransition) return;
+          isValidTransition = previousNodeInteractions.some(previousInteraction => previousInteraction < currentInteraction);
+        });
+
+        if(isValidTransition) {
+          validUsers++;
+        }
+      })
+      results.push(validUsers);
+    }
+    return {
+      success: true,
+      users: totalInteractedUsers,
+      results,
+    }
   }
 }
