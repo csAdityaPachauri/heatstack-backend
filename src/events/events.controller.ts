@@ -9,6 +9,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
+import { CreateFlowDto } from './dto/create-flow.dto';
 
 @Controller()
 export class EventsController {
@@ -30,5 +31,25 @@ export class EventsController {
   @UsePipes(new ValidationPipe())
   events(@Query('origin') origin: string, @Param('stackId') stackId: string) {
     return this.eventsService.events(stackId, origin);
+  }
+
+  @Post(':stackId/flows')
+  @UsePipes(new ValidationPipe())
+  flows(
+    @Param('stackId') stackId: string,
+    @Query('origin') origin: string,
+    @Body() createFlowDto: CreateFlowDto,
+  ) {
+    return this.eventsService.flows(stackId, origin, createFlowDto);
+  }
+
+  @Get(':stackId/flows/:flowId')
+  @UsePipes(new ValidationPipe())
+  getFlow(
+    @Param('stackId') stackId: string,
+    @Param('flowId') flowId: string,
+    @Query('origin') origin: string,
+  ) {
+    return this.eventsService.getFlow(stackId, origin, flowId);
   }
 }
