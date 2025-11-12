@@ -12,9 +12,26 @@ async function bootstrap() {
   app = await NestFactory.create(AppModule);
   
   // Enable CORS
+  const allowedOrigins = [
+    'https://apple.contentstackapps.com', // Your live frontend
+    'http://localhost:3000', // Your local frontend (adjust port if needed)
+    'http://localhost:4000' // Your local frontend (adjust port if needed)
+  ];
+
   app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: (origin, callback) => {
+      // Allow requests if the origin is in your list or if there's no origin (like Postman)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
+    credentials: true, // Required for sending Authorization headers or cookies
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
   
   const port = process.env.PORT || 3000;

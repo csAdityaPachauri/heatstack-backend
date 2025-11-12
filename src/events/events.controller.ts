@@ -7,7 +7,6 @@ import {
   Query,
   UsePipes,
   ValidationPipe,
-  Patch,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
@@ -66,7 +65,7 @@ export class EventsController {
     return this.eventsService.getFlow(stackId, origin, flowId);
   }
 
-  @Patch(':stackId/users/:userId/lytics')
+  @Post(':stackId/users/:userId/lytics')
   @UsePipes(new ValidationPipe())
   updateLyticsId(
     @Param('stackId') stackId: string,
