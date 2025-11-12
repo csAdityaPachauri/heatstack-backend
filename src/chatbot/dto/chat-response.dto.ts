@@ -7,4 +7,5 @@ export class ChatResponseDto {
   }>;
   confidence: number;
   timestamp: number;
+  aiSource?: string; // 'cohere-command' | 'ollama-llama' | 'rule-based'
 }

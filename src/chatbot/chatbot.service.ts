@@ -27,8 +27,8 @@ export class ChatbotService {
     const promptTemplate = selectPrompt(question);
     const prompt = promptTemplate.replace('{context}', context).replace('{question}', question);
 
-    // 4. Generate answer
-    const answer = await this.generateAnswer(question, prompt, results);
+    // 4. Generate answer and track source
+    const { answer, source } = await this.generateAnswer(question, prompt, results);
 
     // 5. Extract sources
     const sources = this.ragService.extractSources(results);
@@ -47,29 +47,54 @@ export class ChatbotService {
       sources,
       confidence: avgRelevance,
       timestamp: Date.now(),
+      aiSource: source,
     };
   }
 
-  private async generateAnswer(question: string, prompt: string, results: any[]): Promise<string> {
+  private async generateAnswer(
+    question: string,
+    prompt: string,
+    results: any[],
+  ): Promise<{ answer: string; source: string }> {
     if (results.length === 0) {
-      return "I don't have enough data to answer this question. Please make sure you have tracking data for the specified stackId and origin.";
+      return {
+        answer:
+          "I don't have enough data to answer this question. Please make sure you have tracking data for the specified stackId and origin.",
+        source: 'none',
+      };
     }
 
-    // Try to use Cohere Command API if available
-    const cohereApiKey = this.configService.get<string>('COHERE_API_KEY');
-    if (cohereApiKey) {
+    // Priority 1: Try Cohere Command API if available (most powerful)
+    const cohereCommandKey = this.configService.get<string>('COHERE_COMMAND_API_KEY');
+    if (cohereCommandKey) {
       try {
-        const cohereAnswer = await this.generateCohereAnswer(prompt, cohereApiKey);
+        const cohereAnswer = await this.generateCohereAnswer(prompt, cohereCommandKey);
         if (cohereAnswer) {
-          return cohereAnswer;
+          console.log('✅ Answer generated using Cohere Command');
+          return { answer: cohereAnswer, source: 'cohere-command' };
         }
       } catch (error) {
-        console.error('Cohere API failed, falling back to rule-based answer:', error.message);
+        console.error('⚠️ Cohere Command API failed:', error.message);
       }
     }
 
-    // Fallback: Generate intelligent rule-based answer
-    return this.generateRuleBasedAnswer(question, results);
+    // Priority 2: Try Ollama (local Llama) if available (free, private)
+    const ollamaUrl = this.configService.get<string>('OLLAMA_BASE_URL');
+    if (ollamaUrl) {
+      try {
+        const llamaAnswer = await this.generateLlamaAnswer(prompt);
+        if (llamaAnswer) {
+          console.log('✅ Answer generated using Ollama (Llama)');
+          return { answer: llamaAnswer, source: 'ollama-llama' };
+        }
+      } catch (error) {
+        console.error('⚠️ Ollama failed:', error.message);
+      }
+    }
+
+    // Priority 3: Fallback to intelligent rule-based answer
+    console.log('ℹ️ Using rule-based answer generation');
+    return { answer: this.generateRuleBasedAnswer(question, results), source: 'rule-based' };
   }
 
   private async generateCohereAnswer(prompt: string, apiKey: string): Promise<string | null> {
@@ -96,6 +121,42 @@ export class ChatbotService {
       const data = await response.json();
       return data.generations?.[0]?.text?.trim() || null;
     } catch (error) {
+      return null;
+    }
+  }
+
+  private async generateLlamaAnswer(prompt: string): Promise<string | null> {
+    try {
+      const ollamaUrl =
+        this.configService.get<string>('OLLAMA_BASE_URL') || 'http://localhost:11434';
+      const model = this.configService.get<string>('OLLAMA_MODEL') || 'llama3.2';
+
+      const response = await fetch(`${ollamaUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: prompt,
+          stream: false,
+          options: {
+            temperature: 0.7,
+            top_p: 0.9,
+            max_tokens: 300,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Ollama response not OK:', response.status, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      return data.response?.trim() || null;
+    } catch (error) {
+      console.error('Ollama error:', error);
       return null;
     }
   }

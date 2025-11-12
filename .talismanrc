@@ -1,14 +1,14 @@
 fileignoreconfig:
-- filename: package-lock.json
-  checksum: 73819eea52a13e8ef25963bc5b8fc9af78575b5625fc5cf70efb5156a9e9b9f5
-- filename: src/chatbot/rag.service.ts
-  checksum: 79d567360fd12c11ea64d841d28cdd291cea43c93c7b93638002b380e63e71af
-- filename: src/vectordb/test-pinecone.ts
-  checksum: 2298e8f314663acfdfe6ccdafe054205da3f4a131cf80fdf81525ce05d806519
-- filename: src/vectordb/test-cohere.ts
-  checksum: b8d1b467e50d4c32ad1e335218a95fe4357bee6d8f8640ba4775c7ea3e572b70
-- filename: src/vectordb/vectordb.service.ts
-  checksum: 5d304404c3c248cbc90612034d5a8e14ac69e2a21d2e50114bf57a0f9fa40290
-- filename: src/chatbot/chatbot.service.ts
-  checksum: 887f84b3bfca7d253f4f8ebdc43a6d503be3b31ba05a5496bd998c072a953649
-version: "1.0"
+  - filename: package-lock.json
+    checksum: 73819eea52a13e8ef25963bc5b8fc9af78575b5625fc5cf70efb5156a9e9b9f5
+  - filename: src/chatbot/rag.service.ts
+    checksum: 79d567360fd12c11ea64d841d28cdd291cea43c93c7b93638002b380e63e71af
+  - filename: src/vectordb/test-pinecone.ts
+    checksum: 2298e8f314663acfdfe6ccdafe054205da3f4a131cf80fdf81525ce05d806519
+  - filename: src/vectordb/test-cohere.ts
+    checksum: b8d1b467e50d4c32ad1e335218a95fe4357bee6d8f8640ba4775c7ea3e572b70
+  - filename: src/vectordb/vectordb.service.ts
+    checksum: 5d304404c3c248cbc90612034d5a8e14ac69e2a21d2e50114bf57a0f9fa40290
+  - filename: src/chatbot/chatbot.service.ts
+    checksum: 372d2267d876cb1618e1ef6e030eb21b2ef99cca07adfdf6dfd3b0cd11cb9cd5
+version: '1.0'
