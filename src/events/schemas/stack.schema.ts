@@ -4,7 +4,11 @@ import { Document } from 'mongoose';
 export type StackDocument = Stack & Document;
 
 export type Flow = {
-  [key: string]: string[];
+  [key: string]: {
+    id: string;
+    name: string;
+    sequence: string[];
+  };
 }
 
 export type Website = {
