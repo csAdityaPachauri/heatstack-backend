@@ -12,9 +12,11 @@ async function bootstrap() {
   app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: '*',
+    origin: '*', // or specify your frontend's domain
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: false,
-    preflightContinue: true,
+    preflightContinue: false, // This is the key change
+    allowedHeaders: 'Content-Type, Accept, Authorization'
   });
   
   const port = process.env.PORT || 3000;
